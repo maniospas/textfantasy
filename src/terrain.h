@@ -35,10 +35,10 @@ private:
 
 class Terrain {
 public:
-    static constexpr long WIDTH  = 128;
-    static constexpr long HEIGHT = 128;
+    static constexpr long WIDTH  = 256;
+    static constexpr long HEIGHT = 256;
 
-    Terrain() : cells(WIDTH * HEIGHT), player_x(32), player_y(32) { randomize(); }
+    Terrain() : player_x(128), player_y(128), cells(WIDTH * HEIGHT) { randomize(); }
 
     void randomize() {
         tiles.clear();
