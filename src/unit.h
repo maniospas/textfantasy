@@ -4,12 +4,13 @@
 #include <iostream>
 
 class Terrain; // forward declaration for the process pointer
-
+static const char* NO_SYMBOL = "  ";
 using UnitProcess = void(*)(struct Unit* self, Terrain* terrain, long x, long y);
 
 struct Unit {
     const char* name;    // new: human-readable name
-    const char* symbol;  // icon/emoji
+    const char* symbol;        // icon/emoji
+    const char* effect;
     long  melee;         // melee damage
     long  health;        // current health
     long  max_health;    // maximum health
@@ -20,7 +21,7 @@ struct Unit {
     Unit()
         : name("Unknown"), symbol("  "),
           melee(0), health(5), max_health(5),
-          speed(5), size(1), process(nullptr) {}
+          speed(5), size(1), process(nullptr), effect(nullptr) {}
 
     Unit(const char* nm, const char* sym,
          long melee_, long size_,
@@ -29,7 +30,7 @@ struct Unit {
          UnitProcess proc = nullptr)
         : name(nm), symbol(sym),
           melee(melee_), health(health_), max_health(max_health_),
-          speed(speed_), size(size_), process(proc) {}
+          speed(speed_), size(size_), process(proc), effect(nullptr) {}
 
     long threat() const { return health * melee; }
 
@@ -49,20 +50,24 @@ struct Unit {
         else
             health -= other->melee;
         if(!health)
-            symbol = "";
+            symbol = NO_SYMBOL;
+        if(other->melee)
+            effect = "💥";
         if(other->health<=melee)
             other->health = 0;
         else
             other->health -= melee;
         if(!other->health)
-            other->symbol = "";
+            other->symbol = NO_SYMBOL;
+        if(melee)
+            other->effect = "💥";
     }
 };
 
 namespace unit {
 
     // ── Terrain / environment
-    static const Unit GRASS    ("Grass   ", "  ", 0, 0, 0,0,0);
+    static const Unit GRASS    ("Grass   ", NO_SYMBOL, 0, 0, 0,0,0);
     static const Unit TREE2    ("Tree    ", "🌳", 0, 0,10,10,0);
     static const Unit TREE     ("Tree    ", "🌲", 0, 0,10,10,0);
     static const Unit ROCK     ("Rock    ", "🪨", 0, 0,10,10,0);

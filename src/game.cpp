@@ -1,5 +1,7 @@
 #include "utils.h"
 #include "terrain.h"
+#include <thread>
+#include <chrono>
 
 #if defined(_WIN32)
     #include <windows.h>
@@ -22,9 +24,9 @@ int main() {
     Unit* touch = nullptr;
     bool is_living = true;
     while (is_living) {
+        // draw
         std::cout << ANSI_CLEAR_AND_HOME;
         std::cout << "SPACE: interact   WASD: move   Q: quit\n";
-
         terrain.draw(terrain.player_x, terrain.player_y, 8);
         std::cout << "\n\n";
         std::cout << "  ME ";
@@ -62,8 +64,40 @@ int main() {
                 terrain.player_x--;
             touch = &terrain.cell(terrain.player_x - 1, terrain.player_y).unit();
         }
+
+
+        // draw again
+        std::cout << ANSI_CLEAR_AND_HOME;
+        std::cout << "SPACE: interact   WASD: move   Q: quit\n";
+        terrain.draw(terrain.player_x, terrain.player_y, 8);
+        std::cout << "\n\n";
+        std::cout << "  ME ";
+        terrain.cell(terrain.player_x, terrain.player_y).unit().info();
+        if(touch && touch->symbol!=unit::GRASS.symbol) {
+            std::cout << "  VS ";
+            touch->info();
+        }
+        else  std::cout << "\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
         terrain.step();
-        if(!terrain.cell(terrain.player_x, terrain.player_y).unit().symbol[0])
+
+        // draw again
+        std::cout << ANSI_CLEAR_AND_HOME;
+        std::cout << "SPACE: interact   WASD: move   Q: quit\n";
+        terrain.draw(terrain.player_x, terrain.player_y, 8);
+        std::cout << "\n\n";
+        std::cout << "  ME ";
+        terrain.cell(terrain.player_x, terrain.player_y).unit().info();
+        if(touch && touch->symbol!=unit::GRASS.symbol) {
+            std::cout << "  VS ";
+            touch->info();
+        }
+        else  std::cout << "\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        terrain.step_again();
+
+        // check if dead
+        if(terrain.cell(terrain.player_x, terrain.player_y).unit().symbol==NO_SYMBOL)
             is_living = false;
     }
     if(!is_living) {

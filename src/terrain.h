@@ -19,8 +19,10 @@ public:
     const Tile& tile() const { return *tile_; }
     const Unit& unit() const { return *unit_; }
     void draw() const {
-        if(!unit_->symbol[0])
-            std::cout << tile_->bgColor << bg::reset;
+        if(unit_->effect) {
+            std::cout << tile_->bgColor << unit_->effect << bg::reset;
+            unit_->effect = nullptr;
+        }
         else
             std::cout << tile_->bgColor << unit_->symbol << bg::reset;
     }
@@ -129,8 +131,60 @@ public:
     const Cell& cell(long x, long y) const { return cells[y * WIDTH + x]; }
 
     void step() {
-        // simulation logic if needed
+        static std::mt19937 rng{std::random_device{}()};
+        std::uniform_real_distribution<> prob(0.0, 1.0);
+        std::uniform_int_distribution<int> dirDist(0, 3);
+        const int dx[4] = { 0, 0, -1, 1 };
+        const int dy[4] = { -1, 1, 0, 0 };
+        for (long y = 0; y < HEIGHT; ++y) {
+            for (long x = 0; x < WIDTH; ++x) {
+                if (player_x == x && player_y == y) continue;
+
+                Unit &u = cell(x, y).unit();
+                if (u.symbol==NO_SYMBOL || !u.speed) continue;
+
+                double s = u.speed;  // assumes Unit has a numeric member "speed"
+                if (s < 5.0) {
+                    if (prob(rng) < s/5.0) {
+                        int dir = dirDist(rng);
+                        move(x, y, x + dx[dir], y + dy[dir]); // move immediately
+                    }
+                } else {
+                    // speed ≥ 5 : always at least one move
+                    int dir = dirDist(rng);
+                    move(x, y, x + dx[dir], y + dy[dir]);
+                    // second move will be handled by step_again()
+                }
+            }
+        }
     }
+    void step_again() {
+        static std::mt19937 rng{std::random_device{}()};
+        std::uniform_real_distribution<> prob(0.0, 1.0);
+        std::uniform_int_distribution<int> dirDist(0, 3);
+        static const int dx[4] = { 0, 0, -1, 1 };
+        static const int dy[4] = { -1, 1, 0, 0 };
+
+        for (long y = 0; y < HEIGHT; ++y) {
+            for (long x = 0; x < WIDTH; ++x) {
+                if (player_x == x && player_y == y) 
+                    continue;
+                auto &u = cell(x, y).unit();
+                if (u.symbol==NO_SYMBOL || u.speed<5) 
+                    continue;
+                double s = u.speed;
+                if (s > 5) {
+                    double p = s/5.0 - 1.0;
+                    if (prob(rng) < p) {
+                        int dir = dirDist(rng);
+                        move(x, y, x + dx[dir], y + dy[dir]);
+                    }
+                }
+            }
+        }
+    }
+
+
     bool move(long fromX, long fromY, long toX, long toY) {
         if (fromX < 0 || fromX >= WIDTH || fromY < 0 || fromY >= HEIGHT ||
             toX   < 0 || toX   >= WIDTH || toY   < 0 || toY   >= HEIGHT) {
@@ -138,7 +192,7 @@ public:
         }
         Cell& src = cell(fromX, fromY);
         Cell& dst = cell(toX, toY);
-        if (&dst.unit() != defaultUnit && dst.unit().symbol[0]) 
+        if (&dst.unit() != defaultUnit && dst.unit().symbol!=NO_SYMBOL) 
             return false;
         Unit* u = &src.unit();
         if (u == defaultUnit) 
