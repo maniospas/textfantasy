@@ -70,11 +70,20 @@ public:
                 else if (r < 0.008) { units.emplace_back(unit::DRAGON); u = &units.back(); }
                 else if (r < 0.009) { units.emplace_back(unit::ELF); u = &units.back(); }
                 else if (r < 0.010) { units.emplace_back(unit::ORC); u = &units.back(); }
-                else if (r < 0.010) { units.emplace_back(unit::KNIGHT); u = &units.back(); }
-                else if (r < 0.010) { units.emplace_back(unit::SNAKE); u = &units.back(); }
+                else if (r < 0.011) { units.emplace_back(unit::WIZARD); u = &units.back(); }
+                else if (r < 0.012) { units.emplace_back(unit::SNAKE); u = &units.back(); }
+                else if (r < 0.013) { units.emplace_back(unit::GOLEM); u = &units.back(); }
+                else if (r < 0.014) { units.emplace_back(unit::DEMON); u = &units.back(); }
+                else if (r < 0.015) { units.emplace_back(unit::MONKEY); u = &units.back(); }
+                else if (r < 0.016) { units.emplace_back(unit::LION); u = &units.back(); }
+                else if (r < 0.017) { units.emplace_back(unit::WOLF); u = &units.back(); }
+                else if (r < 0.018) { units.emplace_back(unit::VAMPIRE); u = &units.back(); }
+                else if (r < 0.019) { units.emplace_back(unit::SKELETON); u = &units.back(); }
+                else if (r < 0.020) { units.emplace_back(unit::HALFLING); u = &units.back(); }
+                else if (r < 0.021) { units.emplace_back(unit::DWARF); u = &units.back(); }
                 //else if (r < 0.15) { units.emplace_back(unit::TREE2);  u = &units.back(); }
-                else if (r < 0.15) { units.emplace_back(unit::TREE); u = &units.back(); }
-                else if (r < 0.2) { units.emplace_back(unit::ROCK); u = &units.back(); }
+                else if (r < 0.35) { units.emplace_back(unit::TREE); u = &units.back(); }
+                else if (r < 0.37) { units.emplace_back(unit::ROCK); u = &units.back(); }
 
                 cell(x, y).set(t, u);
             }

@@ -154,46 +154,45 @@ namespace unit {
     // ── Civilized folk
     static const Unit KNIGHT   ("Knight  ", "🤺", 5,9,5, item::sword);
     static const Unit HUMAN    ("Human   ", "🙂", 5,5,5, item::sword);
-    static const Unit ELF      ("Elf     ", "🧝", 5,5,5);
-    static const Unit DWARF    ("Dwarf   ", "🧔", 5,9,3, item::hammer);
-    static const Unit HALFLING ("Halfling", "🧑‍🦱",5,5,5, item::axe);
+    static const Unit ELF      ("Elf     ", "🧝", 5,5,7);
+    static const Unit DWARF    ("Dwarf   ", "🧔", 3,9,3, item::hammer);
+    static const Unit HALFLING ("Halfling", "🧑‍🦱", 3,3,7, item::axe);
 
     // ── Mounts & animals
-    static const Unit HORSE    ("Horse   ", "🐎",10,5,9, item::pound);
+    static const Unit HORSE    ("Horse   ", "🐎",10,5,9);
     static const Unit WOLF     ("Wolf    ", "🐺", 6,5,10, item::bite);
     static const Unit BEAR     ("Bear    ", "🐻", 8,5,5, item::claw);
     static const Unit EAGLE    ("Eagle   ", "🦅", 4,5,5);
     static const Unit UNICORN  ("Unicorn ", "🦄",10,9,9, item::pound);
-    static const Unit LION     ("Lion    ", "🦁", 6,5,5, item::bite);
+    static const Unit LION     ("Lion    ", "🦁",10,5,5, item::bite);
     static const Unit DOVE     ("Dove    ", "🕊️", 2,5,5);
     static const Unit SNAKE    ("Snake   ", "🐍", 3,3,5, item::bite);
-    static const Unit RABBIT   ("Rabbit  ", "🐇", 1,2,10);
-    static const Unit SLIME    ("Slime   ", "🫧", 1,2,5);
+    static const Unit RABBIT   ("Rabbit  ", "🐇", 1,3,10);
+    static const Unit MONKEY   ("Monkey  ", "🐒", 3,5,9);
+    static const Unit SLIME    ("Slime   ", "🫧", 1,9,3);
 
     // ── Monsters
-    static const Unit ORC      ("Orc     ", "👹", 5,5,5, item::sword);
-    static const Unit GOBLIN   ("Goblin  ", "👺", 2,5,5, item::sword);
+    static const Unit ORC      ("Orc     ", "👹", 6,6,6, item::sword);
+    static const Unit GOBLIN   ("Goblin  ", "👺", 2,3,5, item::sword);
     static const Unit TROLL    ("Troll   ", "🧌", 7,5,2, item::hammer);
     static const Unit DRAGON   ("Dragon  ", "🐉",15,25,5, item::fire);
-    static const Unit GIANT    ("Giant   ", "🗿",12,5,2, item::pound);
     static const Unit VAMPIRE  ("Vampire ", "🧛", 5,5,5, item::bite);
     static const Unit KRAKEN   ("Kraken  ", "🐙",12,5,2);
     static const Unit MINOTAUR ("Minotaur", "🐂", 7,5,5, item::pound);
     static const Unit BANSHEE  ("Banshee ", "👻", 5,5,5, item::fire);
 
     // ── Magic & undead
-    static const Unit WIZARD   ("Wizard  ", "🧙", 5,5,5, item::fire);
+    static const Unit WIZARD   ("Wizard  ", "🧙", 5,5,4, item::fire);
     static const Unit WITCH    ("Witch   ", "🧙‍♀️",5,5,5);
-    static const Unit SKELETON ("Skeleton", "💀", 5,5,5, item::sword);
-    static const Unit ZOMBIE   ("Zombie  ", "🧟", 5,5,5, item::pound);
+    static const Unit SKELETON ("Skeleton", "💀", 5,3,5, item::sword);
+    static const Unit ZOMBIE   ("Zombie  ", "🧟", 5,5,3, item::pound);
     static const Unit DEMON    ("Demon   ", "😈", 8,5,5);
     static const Unit ARCHMAGE ("Archmage", "🔮", 5,5,5);
     static const Unit LICH     ("Lich    ", "☠️", 5,5,5);
-    static const Unit GOLEM    ("Golem   ", "🗿",10,5,2, item::pound);
+    static const Unit GOLEM    ("Golem   ", "🗿",12,9,2, item::pound);
     static const Unit SHADE    ("Shade   ", "🌑", 5,5,5);
 
     // ── Sample spell-like entities
-    static const Unit FIREBALL      ("Fireball",      "🔥", 1,1,5);
     static const Unit ICESPIKE      ("Ice Spike",     "❄️",1,1,5);
     static const Unit LIGHTNINGBOLT ("Lightning Bolt","⚡",1,1,5);
     static const Unit HEALINGLIGHT  ("Healing Light", "✨",1,1,5);
