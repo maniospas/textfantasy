@@ -19,10 +19,13 @@ public:
     const Tile& tile() const { return *tile_; }
     const Unit& unit() const { return *unit_; }
     void draw() const {
+        auto bg_color = tile_->bgColor;
+        if(unit_->mood<0)
+            bg_color = bg::threatening(bg_color);
         if(unit_->effect) 
-            std::cout << tile_->bgColor << unit_->effect << bg::reset;
+            std::cout << bg_color << unit_->effect << bg::reset;
         else 
-            std::cout << tile_->bgColor << unit_->symbol << bg::reset;
+            std::cout << bg_color << unit_->symbol << bg::reset;
     }
 private:
     Tile* tile_;
@@ -59,6 +62,9 @@ public:
                     u->items.emplace_back(item::hammer);
                     u->items.emplace_back(item::fire);
                     u->items.emplace_back(item::zap);
+                    u->items.emplace_back(item::pound);
+                    u->items.emplace_back(item::bite);
+                    u->items.emplace_back(item::charm);
                 }
                 else if (r < 0.001) { units.emplace_back(unit::HUMAN); u = &units.back(); }
                 else if (r < 0.002) { units.emplace_back(unit::HORSE); u = &units.back(); }
@@ -82,8 +88,8 @@ public:
                 else if (r < 0.020) { units.emplace_back(unit::HALFLING); u = &units.back(); }
                 else if (r < 0.021) { units.emplace_back(unit::DWARF); u = &units.back(); }
                 //else if (r < 0.15) { units.emplace_back(unit::TREE2);  u = &units.back(); }
-                else if (r < 0.35) { units.emplace_back(unit::TREE); u = &units.back(); }
-                else if (r < 0.37) { units.emplace_back(unit::ROCK); u = &units.back(); }
+                else if (r < 0.25) { units.emplace_back(unit::TREE); u = &units.back(); }
+                else if (r < 0.26) { units.emplace_back(unit::ROCK); u = &units.back(); }
 
                 cell(x, y).set(t, u);
             }
@@ -136,8 +142,13 @@ public:
     }
 
 
-    Cell& cell(long x, long y) { return cells[y * WIDTH + x]; }
-    const Cell& cell(long x, long y) const { return cells[y * WIDTH + x]; }
+    inline Cell& cell(long x, long y) { return cells[y * WIDTH + x]; }
+    inline const Cell& cell(long x, long y) const { return cells[y * WIDTH + x]; }
+    inline const bool in_bounds(long x, long y) {
+        if(x>=WIDTH || y>=HEIGHT)
+            return false;
+        return true;
+    }
 
     void step(long interpolation_step) {
         static const int dx[4] = { 0, 0, -1, 1 };
@@ -169,6 +180,18 @@ public:
                         }
                 }
             for(auto& u : units) {
+                if(u.symbol!=NO_SYMBOL && u.items.size()) {
+                    if(u.mood==0 && dist(rng)<0.02)
+                        u.mood--;
+                    if(u.mood==-1 && dist(rng)<0.02)
+                        u.mood++;
+                    if(u.mood<-1)
+                        u.mood++;
+                    else if(u.mood>0)
+                        u.mood--;
+                }
+                else
+                    u.mood = 0;
                 if(u.to_spread) {
                     u.to_spread = 0;
                     u.spreads = nullptr;
@@ -193,13 +216,15 @@ public:
             toX   < 0 || toX   >= WIDTH || toY   < 0 || toY   >= HEIGHT) {
             return false;
         }
-        Cell& src = cell(fromX, fromY);
-        Cell& dst = cell(toX, toY);
+        auto& src = cell(fromX, fromY);
+        auto& dst = cell(toX, toY);
         if (&dst.unit() != defaultUnit && dst.unit().symbol!=NO_SYMBOL) 
             return false;
-        Unit* u = &src.unit();
-        if (u == defaultUnit) 
+        auto u = &src.unit();
+        if(u == defaultUnit) 
             return false;
+        if(u->effect)
+            return false; // do not move while there is an effect on operation 
         dst.set(dst.tile_ ? &dst.tile() : defaultTile, u);
         src.set(src.tile_ ? &src.tile() : defaultTile, defaultUnit);
         return true;

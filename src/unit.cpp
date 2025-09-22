@@ -4,7 +4,7 @@
 void Unit::ai_step(Terrain& terrain, long my_x, long my_y, long interpolation_step) {
     if (speed < 5 && !interpolation_step && dist(rng) < static_cast<double>(speed) / 5.0)
         return;
-    if(speed > 5 && interpolation_step && dist(rng) < static_cast<double>(speed) / 5.0-1.0)
+    if(speed > 5 && interpolation_step && dist(rng) > static_cast<double>(speed) / 5.0-1.0)
         return;
 
     if (ai_target && (ai_target->health == 0 || ai_target->symbol == NO_SYMBOL)) 
@@ -16,8 +16,8 @@ void Unit::ai_step(Terrain& terrain, long my_x, long my_y, long interpolation_st
             long ny = my_y + dist(rng);
             if (nx < 0 || nx >= terrain.WIDTH || ny < 0 || ny >= terrain.HEIGHT)
                 continue;
-            Unit &cand = terrain.cell(nx, ny).unit();
-            if (cand.symbol != NO_SYMBOL && cand.health > 0) 
+            auto& cand = terrain.cell(nx, ny).unit();
+            if (cand.symbol != NO_SYMBOL && cand.health > 0 && this!=&cand && cand.speed) 
                 ai_target = &cand;
         }
     }
@@ -29,20 +29,32 @@ void Unit::ai_step(Terrain& terrain, long my_x, long my_y, long interpolation_st
                     tx = x; 
                     ty = y;
                 }
-
         if (tx != -1) {
-            long dxMove = (tx == my_x ? 0 : (tx > my_x ? 1 : -1));
-            long dyMove = (ty == my_y ? 0 : (ty > my_y ? 1 : -1));
-            if (std::abs(tx - my_x) <= 1 && std::abs(ty - my_y) <= 1) {
-                if (!items.empty()) {
-                    if(!interpolation_step)
+            long dx = tx - my_x;
+            long dy = ty - my_y;
+
+            long dxMove = 0;
+            long dyMove = 0;
+
+            // choose the axis with the larger absolute difference
+            if (std::abs(dx) > std::abs(dy))
+                dxMove = (dx > 0 ? 1 : -1);
+            else if (dy != 0)
+                dyMove = (dy > 0 ? 1 : -1);
+
+            if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {
+                if (!items.empty() && mood < 0) {
+                    if (!interpolation_step)
                         fight(ai_target, &items[0]);
-                }
-                else
+                } else {
                     terrain.move(my_x, my_y, my_x - dxMove, my_y - dyMove);
-            }
-            else terrain.move(my_x, my_y, my_x + dxMove, my_y + dyMove);
+                }
+            } else if (mood > 0)
+                terrain.move(my_x, my_y, my_x - dxMove, my_y - dyMove);
+            else
+                terrain.move(my_x, my_y, my_x + dxMove, my_y + dyMove);
         }
+
     }
     else {
         static const int dx[4] = { 0, 0, -1, 1 };

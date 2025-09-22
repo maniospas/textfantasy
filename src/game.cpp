@@ -8,6 +8,9 @@
 #endif
 #include <iostream>
 
+std::string message = "This is a ";
+
+
 void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
     std::cout << ANSI_CLEAR_AND_HOME;
     terrain.draw(terrain.player_x, terrain.player_y, 8);
@@ -16,42 +19,56 @@ void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
     if (touch && touch->symbol != unit::GRASS.symbol) {
         if(touch->ai_target!=&player) {
             std::cout << "\033[1;34m";   // bright red for enemy
-            std::cout << "  ┌─TARGET─────────────────────────────────────────\n";
+            std::cout << "  ┌─TARGET───────────────────────────────────────────────\n";
             std::cout << "  │ \033[0m  ";
             touch->info();
-            std::cout << "\033[1;34m  ├─INTERACT───────────────────────────────────────\n";
-            std::cout << "  \033[1;34m│ \033[0mQ question \033[1;34m│ \033[0m\n";
-            std::cout << "  \033[1;34m│ \033[0mI info     \033[1;34m│ \033[0m\n";        
-            std::cout << "\033[1;34m  └────────────────────────────────────────────────";
+            //std::cout << "\033[1;34m  ├─INFO─────────────────────────────────────────────────\n";
+            //std::cout << "  \033[1;34m│ \033[0mQ question \033[1;34m│ \033[0m\n";
+            //std::cout << "  \033[1;34m│ \033[0mI info     \033[1;34m│ \033[0m\n";  
+            //std::cout << "  \033[1;34m│ \033[0m  ";
+            // for (auto& item : touch->items) {
+            //     std::cout << item.symbol << " " << item.name << " ";
+            // }  
+            std::cout << "  \033[1;34m│ \033[0m  \n";
+            std::cout << "  \033[1;34m│ \033[0m  ";
+            std::cout << message;
+            std::cout << "\n\033[1;34m  └──────────────────────────────────────────────────────";
             std::cout << "\033[0m\n";
         }
         else {
-            std::cout << "\n\n\n\033[1;31m";   // bright red for enemy
-            std::cout << "  ┌─FIGHTING───────────────────────────────────────\n";
+            std::cout << "\n\033[1;31m";   // bright red for enemy
+            std::cout << "  ┌─FIGHTING─────────────────────────────────────────────\n";
             std::cout << "  │ \033[0m  ";
-            touch->info();               
-            std::cout << "\033[1;31m  └────────────────────────────────────────────────";
+            touch->info();      
+            std::cout << "  \033[1;31m│ \033[0m  \n";
+            std::cout << "  \033[1;31m│ \033[0m  "; 
+            std::cout << message;        
+            std::cout << "\n\033[1;31m  └──────────────────────────────────────────────────────";
             std::cout << "\033[0m\n";
         }
-    } else std::cout << "\n\n\n\n\n\n";
+    } else std::cout << "\n\n\n\n\n";
 
     
     std::cout << "\033[1;32m";   // bright red for enemy
-    std::cout << "  ┌─PLAYER─────────────────────────────────────────\n";
+    std::cout << "  ┌─PLAYER───────────────────────────────────────────────\n";
     std::cout << "  │ \033[0m  ";
     player.info();               
-    std::cout << "\033[1;32m  ├─INVENTORY──────────────────────────────────────";
+    std::cout << "\033[1;32m  ├─INVENTORY────────────────────────────────────────────";
     std::cout << "\033[0m\n";
 
     long pos = 1;
-    for (auto& item : player.items) {
-        if (pos >= 10) break;
-        std::cout << "  \033[1;32m│ \033[0m" << pos << " "
-                  << item.symbol << " " << item.name
-                  << " \033[1;32m│\033[0m " << item.description << "\n";
-        pos++;
+    if(player.mood>0) {
+        std::cout << "  \033[1;32m│ \033[0m 💖  charmed \033[1;32m│\033[0m Cannot act for a bit\n";
     }
-    std::cout << "\033[1;32m  └────────────────────────────────────────────────";
+    else
+        for (auto& item : player.items) {
+            if (pos >= 10) break;
+            std::cout << "  \033[1;32m│ \033[0m" << pos << " "
+                    << item.symbol << " " << item.name
+                    << " \033[1;32m│\033[0m " << item.description << "\n";
+            pos++;
+        }
+    std::cout << "\033[1;32m  └──────────────────────────────────────────────────────";
 
     std::cout << "\033[0m\n    WASD: move   Number: use item   Ctrl+C: quit\n";
 }
@@ -89,22 +106,44 @@ int main() {
         if (ch == 's' || ch == 'S') {
             if (terrain.move(terrain.player_x, terrain.player_y, terrain.player_x, terrain.player_y + 1))
                 terrain.player_y++;
-            touch = &terrain.cell(terrain.player_x, terrain.player_y + 1).unit();
+            if(terrain.in_bounds(terrain.player_x, terrain.player_y + 1))
+                touch = &terrain.cell(terrain.player_x, terrain.player_y + 1).unit();
         }
         if (ch == 'w' || ch == 'W') {
             if (terrain.move(terrain.player_x, terrain.player_y, terrain.player_x, terrain.player_y - 1))
                 terrain.player_y--;
-            touch = &terrain.cell(terrain.player_x, terrain.player_y - 1).unit();
+            if(terrain.in_bounds(terrain.player_x, terrain.player_y-1))
+                touch = &terrain.cell(terrain.player_x, terrain.player_y - 1).unit();
         }
         if (ch == 'd' || ch == 'D') {
             if (terrain.move(terrain.player_x, terrain.player_y, terrain.player_x + 1, terrain.player_y))
                 terrain.player_x++;
-            touch = &terrain.cell(terrain.player_x + 1, terrain.player_y).unit();
+            if(terrain.in_bounds(terrain.player_x + 1, terrain.player_y))
+                touch = &terrain.cell(terrain.player_x + 1, terrain.player_y).unit();
         }
         if (ch == 'a' || ch == 'A') {
             if (terrain.move(terrain.player_x, terrain.player_y, terrain.player_x - 1, terrain.player_y))
                 terrain.player_x--;
-            touch = &terrain.cell(terrain.player_x - 1, terrain.player_y).unit();
+            if(terrain.in_bounds(terrain.player_x - 1, terrain.player_y))
+                touch = &terrain.cell(terrain.player_x - 1, terrain.player_y).unit();
+        }
+        if (!touch || touch->symbol == NO_SYMBOL) 
+            touch = player.ai_target;
+        if (!touch) {
+            static const int dx[4] = {1, -1, 0, 0};
+            static const int dy[4] = {0, 0, 1, -1};
+            for (int i = 0; i < 4; ++i) {
+                int nx = terrain.player_x + dx[i];
+                int ny = terrain.player_y + dy[i];
+                // Make sure the coordinates are inside the map
+                if (terrain.in_bounds(nx, ny)) {
+                    auto &unit = terrain.cell(nx, ny).unit();
+                    if (unit.symbol != NO_SYMBOL) {
+                        touch = &unit;
+                        break;
+                    }
+                }
+            }
         }
 
         // draw again
@@ -123,8 +162,8 @@ int main() {
 
     if (!is_living) {
         std::cout << ANSI_CLEAR_AND_HOME;
-        terrain.draw(terrain.player_x, terrain.player_y, 8);
-        std::cout << "\n\n";
+        //terrain.draw(terrain.player_x, terrain.player_y, 8);
+        std::cout << "\033[H\n";
         std::cout << "\033[1;31m"; 
         std::cout << "  ┌───────────┐\n";
         std::cout << "  │ GAME OVER │\n";
@@ -133,7 +172,7 @@ int main() {
     }
     else {
         std::cout << ANSI_CLEAR_AND_HOME;
-        terrain.draw(terrain.player_x, terrain.player_y, 8);
+        //terrain.draw(terrain.player_x, terrain.player_y, 8);
         std::cout << "\n\n";
         std::cout << "\033[1;33m";
         std::cout << "  ┌─────────────┐\n";

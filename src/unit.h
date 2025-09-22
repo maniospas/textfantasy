@@ -27,13 +27,14 @@ struct Unit {
     const char* name;
     const char* symbol;
     const char* effect;
-    uint8_t to_spread;
-    ItemApply spreads;
+    int8_t mood;
     uint8_t health;
     uint8_t max_health;
     uint8_t speed;
     uint8_t size;
     UnitProcess process;
+    ItemApply spreads;
+    uint8_t to_spread;
     struct Unit* ai_target;
     std::vector<Item> items;
 
@@ -41,7 +42,7 @@ struct Unit {
     Unit()
         : name("Unknown"), symbol("  "),
           health(5), max_health(5),
-          speed(5), size(1),to_spread(0),
+          speed(5), size(1),to_spread(0),mood(0),
           process(nullptr), effect(nullptr), ai_target(nullptr) {}
 
     // Basic constructor – starting health = max_health automatically
@@ -51,7 +52,7 @@ struct Unit {
          UnitProcess proc = nullptr)
         : name(nm), symbol(sym),
           health(max_health_), max_health(max_health_),
-          speed(speed_), size(size_),to_spread(0),
+          speed(speed_), size(size_),to_spread(0),mood(0),
           process(proc), effect(nullptr), ai_target(nullptr) {}
 
     // Constructor that accepts one default item
@@ -62,18 +63,33 @@ struct Unit {
          UnitProcess proc = nullptr)
         : name(nm), symbol(sym),
           health(max_health_), max_health(max_health_),
-          speed(speed_), size(size_),to_spread(0),
+          speed(speed_), size(size_),to_spread(0),mood(0),
           process(proc), effect(nullptr), ai_target(nullptr)
     {
         items.push_back(default_item);
     }
 
+    Unit(const char* nm, const char* sym,
+         long size_, long max_health_,
+         long speed_,
+         const Item& default_item1,
+         const Item& default_item2,
+         UnitProcess proc = nullptr)
+        : name(nm), symbol(sym),
+          health(max_health_), max_health(max_health_),
+          speed(speed_), size(size_),to_spread(0),mood(0),
+          process(proc), effect(nullptr), ai_target(nullptr)
+    {
+        items.push_back(default_item1);
+        items.push_back(default_item2);
+    }
+
     // Print basic info and items
     void info() const {
         std::cout << symbol << " " << name << "       ";
-        if (health) std::cout << "❤️" << (int)health << "/" << (int)max_health << " ";
-        if (size)   std::cout << "📏" << (int)size << " ";
-        if (speed)  std::cout << "🐾" << (int)speed << " ";
+        if (health) std::cout << "❤️ HP " << (int)health << "/" << (int)max_health << " ";
+        if (size)   std::cout << "📏 size " << (int)size << " ";
+        if (speed)  std::cout << "🐾 speed " << (int)speed << " ";
         //for (auto& item : items) std::cout << item.symbol;
         std::cout << "\n";
     }
@@ -82,7 +98,14 @@ struct Unit {
     void fight(Unit* other, Item* item) {
         if(!item || !other || !other->health || other->effect || !item->effect) 
             return;
-        item->proficiency += 1;
+        if(mood>0) {
+           //mood--;
+           effect = "💖";
+           return;
+        }
+        if(other->mood>-10)
+            other->mood--;
+        item->proficiency++;
         other->effect = item->symbol;
         item->effect(this, other);
         other->ai_target = this;
@@ -96,32 +119,40 @@ struct Unit {
 //   Items
 // -----------------------------------------------------------------------------
 namespace item {
-    static const Item sword  { "Sword ",  "🗡️",  "2 damage", 0, [](Unit*, Unit* other) {
+    static const Item sword  { "Sword ",  "🗡️",  "1 damage", 0, [](Unit*, Unit* other) {
         if(!other) return; 
         if(other->health>=2) other->health -= 2; else other->health = 0;}
     };
-    static const Item axe    { "Axe   ",  "🪓",  "1 damage + 2 vs larger", 0, [](Unit* owner, Unit* other) {
+    static const Item axe    { "Axe   ",  "🪓",  "1 damage +2 vs larger", 0, [](Unit* owner, Unit* other) {
         if(!other) return; 
-        u_int8_t dmg = owner->size < other->size?3:1;
-        if(other->health>=dmg) other->health -= dmg; else other->health = 0;}
+        u_int8_t damage = owner->size < other->size?3:1;
+        if(other->health>=damage) other->health -= damage; else other->health = 0;}
     };
-    static const Item hammer { "Hammer",  "🔨",  "1 damage + 3 vs undamaged", 0, [](Unit*, Unit* other) {
+    static const Item hammer { "Hammer",  "🔨",  "1 damage +3 vs undamaged", 0, [](Unit*, Unit* other) {
         if(!other) return; 
-        u_int8_t dmg = other->health == other->max_health?4:1;
-        if(other->health>=dmg) other->health -= dmg; else other->health = 0;}
+        u_int8_t damage = other->health == other->max_health?4:1;
+        if(other->health>=damage) other->health -= damage; else other->health = 0;}
     };
     static const Item claw   { "Claw  ",   "🩸",  "1 damage", 0, [](Unit*, Unit* other) {
         if(!other) return; if(other->health>=1) other->health -= 1; else other->health = 0;}
     }; 
-    static const Item pound  { "Pound ",  "💥",  "1 damage", 0, [](Unit*, Unit* other) {
-        if(!other) return; if(other->health>=1) other->health -= 1; else other->health = 0;}
+    static const Item pound  { "Pound ",  "💥",  "1 damage per 2 HP", 0, [](Unit* owner, Unit* other) {
+        if(!other || !owner) return; 
+        u_int8_t damage = owner->health/2;
+        if(other->health>=1) other->health--; else other->health = 0;}
     };
-    static const Item bite   { "Bite  ",   "🦷",  "1 damage", 0, [](Unit*, Unit* other) {
-        if(!other) return; if(other->health>=1) other->health -= 1; else other->health = 0;}
-    };
+    static const Item bite   { "Bite  ",   "🦷",  "1 damage +1 HP", 0, [](Unit* owner, Unit* other) {
+        if(!other || !owner) return; 
+        if(other->health>=1) {
+            other->health--;
+            if(owner->health<owner->max_health)
+                owner->health++;
+        } 
+        else other->health = 0;
+    }};
     static void fire_damage(Unit* owner, Unit* other){
         if (!other) return;
-        if (other->health >= 1) other->health -= 1;
+        if (other->health >= 1) other->health--;
         else other->health = 0;
         other->effect = "🔥";
         if (other->health && !other->spreads && other->max_health>=9)
@@ -133,6 +164,13 @@ namespace item {
         if(other->health>=4) other->health -= 4; else other->health = 0;
         if(owner->health>=1) owner->health -= 1; else owner->health = 0;
         owner->effect = "⚡";
+    }};
+    static const Item charm { "Charm ",   "💖",  "reduce hostility", 0, [](Unit* owner, Unit* other) {
+        if(!other || !owner) return; 
+        if(other->mood<0) 
+            other->mood += 10;
+        else
+            other->mood = 10;
     }};
     static const Item shield { "Shield",   "🛡️",  "prevent damage", 0, [](Unit* owner, Unit* other) {
         owner->effect = "🛡️";
@@ -152,7 +190,7 @@ namespace unit {
     static const Unit MOUNTAIN ("Mountain", "⛰️", 10, 0,0);
 
     // ── Civilized folk
-    static const Unit KNIGHT   ("Knight  ", "🤺", 5,9,5, item::sword);
+    //static const Unit KNIGHT   ("Knight  ", "🤺", 5,9,5, item::sword);
     static const Unit HUMAN    ("Human   ", "🙂", 5,5,5, item::sword);
     static const Unit ELF      ("Elf     ", "🧝", 5,5,7);
     static const Unit DWARF    ("Dwarf   ", "🧔", 3,9,3, item::hammer);
@@ -175,11 +213,11 @@ namespace unit {
     static const Unit ORC      ("Orc     ", "👹", 6,6,6, item::sword);
     static const Unit GOBLIN   ("Goblin  ", "👺", 2,3,5, item::sword);
     static const Unit TROLL    ("Troll   ", "🧌", 7,5,2, item::hammer);
-    static const Unit DRAGON   ("Dragon  ", "🐉",15,25,5, item::fire);
+    static const Unit DRAGON   ("Dragon  ", "🐲",15,25,5, item::fire); // 🐲 🐉
     static const Unit VAMPIRE  ("Vampire ", "🧛", 5,5,5, item::bite);
     static const Unit KRAKEN   ("Kraken  ", "🐙",12,5,2);
     static const Unit MINOTAUR ("Minotaur", "🐂", 7,5,5, item::pound);
-    static const Unit BANSHEE  ("Banshee ", "👻", 5,5,5, item::fire);
+    static const Unit BANSHEE  ("Banshee ", "👻", 5,5,5, item::charm, item::fire);
 
     // ── Magic & undead
     static const Unit WIZARD   ("Wizard  ", "🧙", 5,5,4, item::fire);

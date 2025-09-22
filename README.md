@@ -56,7 +56,7 @@ Can throw some fists.
 12 size, 9 health, 2 speed<br>
 Often carries a hammer.
 
-🐉 Dragon<br>
+🐲 Dragon<br>
 15 size, 25 health, 5 speed<br>
 Spews fire.
 
