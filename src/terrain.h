@@ -19,11 +19,9 @@ public:
     const Tile& tile() const { return *tile_; }
     const Unit& unit() const { return *unit_; }
     void draw() const {
-        if(unit_->effect) {
+        if(unit_->effect) 
             std::cout << tile_->bgColor << unit_->effect << bg::reset;
-            unit_->effect = nullptr;
-        }
-        else
+        else 
             std::cout << tile_->bgColor << unit_->symbol << bg::reset;
     }
 private:
@@ -49,9 +47,6 @@ public:
         defaultTile = &tiles.back();
         defaultUnit = &units.back();
 
-        std::mt19937 rng{std::random_device{}()};
-        std::uniform_real_distribution<> dist(0.0, 1.0);
-
         for (long y = 0; y < HEIGHT; ++y) {
             for (long x = 0; x < WIDTH; ++x) {
                 auto r = dist(rng);
@@ -60,6 +55,10 @@ public:
                 if(x==player_x && y==player_y) {
                     units.emplace_back(unit::HUMAN);
                     u = &units.back(); 
+                    u->items.emplace_back(item::axe);
+                    u->items.emplace_back(item::hammer);
+                    u->items.emplace_back(item::fire);
+                    u->items.emplace_back(item::zap);
                 }
                 else if (r < 0.001) { units.emplace_back(unit::HUMAN); u = &units.back(); }
                 else if (r < 0.002) { units.emplace_back(unit::HORSE); u = &units.back(); }
@@ -71,8 +70,11 @@ public:
                 else if (r < 0.008) { units.emplace_back(unit::DRAGON); u = &units.back(); }
                 else if (r < 0.009) { units.emplace_back(unit::ELF); u = &units.back(); }
                 else if (r < 0.010) { units.emplace_back(unit::ORC); u = &units.back(); }
+                else if (r < 0.010) { units.emplace_back(unit::KNIGHT); u = &units.back(); }
+                else if (r < 0.010) { units.emplace_back(unit::SNAKE); u = &units.back(); }
                 //else if (r < 0.15) { units.emplace_back(unit::TREE2);  u = &units.back(); }
-                else if (r < 0.4) { units.emplace_back(unit::TREE); u = &units.back(); }
+                else if (r < 0.15) { units.emplace_back(unit::TREE); u = &units.back(); }
+                else if (r < 0.2) { units.emplace_back(unit::ROCK); u = &units.back(); }
 
                 cell(x, y).set(t, u);
             }
@@ -114,12 +116,10 @@ public:
         for (long y = start_y; y <= end_y; ++y) {
             std::cout << "  ";
             for (long x = start_x; x <= end_x; ++x) {
-                if (hasLineOfSight(pos_x, pos_y, x, y)) {
+                if (hasLineOfSight(pos_x, pos_y, x, y)) 
                     cell(x, y).draw();
-                } else {
-                    // show unexplored / unseen cells as blank grass or dark tile
+                 else
                     std::cout << "  ";
-                }
             }
             std::cout << '\n';
         }
@@ -130,56 +130,50 @@ public:
     Cell& cell(long x, long y) { return cells[y * WIDTH + x]; }
     const Cell& cell(long x, long y) const { return cells[y * WIDTH + x]; }
 
-    void step() {
-        static std::mt19937 rng{std::random_device{}()};
-        std::uniform_real_distribution<> prob(0.0, 1.0);
-        std::uniform_int_distribution<int> dirDist(0, 3);
-        const int dx[4] = { 0, 0, -1, 1 };
-        const int dy[4] = { -1, 1, 0, 0 };
-        for (long y = 0; y < HEIGHT; ++y) {
-            for (long x = 0; x < WIDTH; ++x) {
-                if (player_x == x && player_y == y) continue;
-
-                Unit &u = cell(x, y).unit();
-                if (u.symbol==NO_SYMBOL || !u.speed) continue;
-
-                double s = u.speed;  // assumes Unit has a numeric member "speed"
-                if (s < 5.0) {
-                    if (prob(rng) < s/5.0) {
-                        int dir = dirDist(rng);
-                        move(x, y, x + dx[dir], y + dy[dir]); // move immediately
-                    }
-                } else {
-                    // speed ≥ 5 : always at least one move
-                    int dir = dirDist(rng);
-                    move(x, y, x + dx[dir], y + dy[dir]);
-                    // second move will be handled by step_again()
-                }
-            }
-        }
-    }
-    void step_again() {
-        static std::mt19937 rng{std::random_device{}()};
-        std::uniform_real_distribution<> prob(0.0, 1.0);
-        std::uniform_int_distribution<int> dirDist(0, 3);
+    void step(long interpolation_step) {
         static const int dx[4] = { 0, 0, -1, 1 };
         static const int dy[4] = { -1, 1, 0, 0 };
-
         for (long y = 0; y < HEIGHT; ++y) {
             for (long x = 0; x < WIDTH; ++x) {
-                if (player_x == x && player_y == y) 
+                Unit &u = cell(x, y).unit();
+                if(u.symbol==NO_SYMBOL || !u.speed) 
                     continue;
-                auto &u = cell(x, y).unit();
-                if (u.symbol==NO_SYMBOL || u.speed<5) 
+                if(player_x == x && player_y == y) 
                     continue;
-                double s = u.speed;
-                if (s > 5) {
-                    double p = s/5.0 - 1.0;
-                    if (prob(rng) < p) {
-                        int dir = dirDist(rng);
-                        move(x, y, x + dx[dir], y + dy[dir]);
-                    }
+                u.ai_step(*this, x, y, interpolation_step);
+            }
+        }
+        if(interpolation_step==0) {
+            for(auto& u : units) 
+                if(u.spreads) 
+                    u.to_spread = 1;
+
+            for (long y = 1; y < HEIGHT-1; ++y) 
+                for (long x = 1; x < WIDTH-1; ++x) {
+                    Unit &u = cell(x, y).unit();
+                    if (u.spreads && u.to_spread) 
+                        for (int i=0;i<4;++i) {
+                            auto& spread_to = cell(x+dx[i], y+dy[i]).unit();
+                            if(spread_to.symbol==NO_SYMBOL)
+                                continue;
+                            u.spreads(nullptr, &spread_to);
+                        }
                 }
+            for(auto& u : units) {
+                if(u.to_spread) {
+                    u.to_spread = 0;
+                    u.spreads = nullptr;
+                }
+                if(u.health==0 && u.max_health)
+                    u.symbol = NO_SYMBOL;
+            }
+        }
+        else {
+            for(auto& u : units) {
+                if(u.symbol==NO_SYMBOL)
+                    u.effect = nullptr;
+                if(u.effect && !u.spreads)
+                    u.effect = nullptr;
             }
         }
     }
