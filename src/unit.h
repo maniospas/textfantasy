@@ -28,13 +28,25 @@ struct Unit {
     const char* symbol;
     const char* effect;
     int8_t mood;
+
     uint8_t health;
     uint8_t max_health;
     uint8_t speed;
     uint8_t size;
+
     UnitProcess process;
     ItemApply spreads;
+
     uint8_t to_spread;
+    uint8_t provisions;
+    uint8_t materials;
+    uint8_t stories;
+
+    uint8_t money;
+    uint8_t fame;
+    uint8_t cycle;
+    uint8_t frozen;
+
     struct Unit* ai_target;
     std::vector<Item> items;
 
@@ -44,6 +56,8 @@ struct Unit {
         mood(0), health(5), max_health(5),
         speed(5), size(1),
         process(nullptr), spreads(), to_spread(0),
+        provisions(0), materials(0), stories(0), money(0), fame(0),
+        cycle(0), frozen(0),
         ai_target(nullptr)
     {}
 
@@ -56,6 +70,8 @@ struct Unit {
         mood(0), health(max_health_), max_health(max_health_),
         speed(speed_), size(size_),
         process(proc), spreads(), to_spread(0),
+        provisions(0), materials(0), stories(0), money(0), fame(0),
+        cycle(0), frozen(0),
         ai_target(nullptr)
     {}
 
@@ -69,6 +85,8 @@ struct Unit {
         mood(0), health(max_health_), max_health(max_health_),
         speed(speed_), size(size_),
         process(proc), spreads(), to_spread(0),
+        provisions(0), materials(0), stories(0), money(0), fame(0),
+        cycle(0), frozen(0),
         ai_target(nullptr)
     {
         items.push_back(default_item);
@@ -85,6 +103,8 @@ struct Unit {
         mood(0), health(max_health_), max_health(max_health_),
         speed(speed_), size(size_),
         process(proc), spreads(), to_spread(0),
+        provisions(0), materials(0), stories(0), money(0), fame(0),
+        cycle(0), frozen(0),
         ai_target(nullptr)
     {
         items.push_back(default_item1);
@@ -95,7 +115,19 @@ struct Unit {
     // Print basic info and items
     void info() const {
         std::cout << symbol << " " << name << "       ";
-        if (health) std::cout << "❤️ HP " << (int)health << "/" << (int)max_health << " ";
+        if (health)    std::cout << "❤️ HP "       << (int)health    << "/" << (int)max_health << "   ";
+        if (provisions)std::cout << "🍗 Food "     << (int)provisions << "   ";
+        if (materials) std::cout << "🪵 Material " << (int)materials;
+        //if (size)   std::cout << "📏 size " << (int)size << " ";
+        //if (speed)  std::cout << "🐾 speed " << (int)speed << " ";
+        //for (auto& item : items) std::cout << item.symbol;
+        std::cout << "\n";
+    }
+    void info_secondary() const {
+        std::cout << "                  ";
+        if (stories)   std::cout << "📜 Stories "  << (int)stories    << "   ";
+        if (money)     std::cout << "🪙 Money "    << (int)money     << "   ";
+        if (fame)      std::cout << "💬 Fame "     << (int)fame;
         //if (size)   std::cout << "📏 size " << (int)size << " ";
         //if (speed)  std::cout << "🐾 speed " << (int)speed << " ";
         //for (auto& item : items) std::cout << item.symbol;
@@ -113,8 +145,12 @@ struct Unit {
 
     // Fight using a specific item (or bare hands if item==nullptr)
     void fight(Unit* other, Item* item) {
-        if(!item || !other || !other->health || other->effect || !item->effect) 
+        if(!health && max_health) return;
+        if(frozen) {
+            effect = "❄️";
             return;
+        }
+        if(!item || !other || !other->health /*|| other->effect*/ || !item->effect)  return;
         if(mood>0) {
            //mood--;
            effect = "💖";
@@ -145,9 +181,11 @@ namespace item {
         uint8_t damage = owner->size < other->size?3:1;
         if(other->health>=damage) other->health -= damage; else other->health = 0;}
     };
-    static const Item hammer { "Hammer",  "🔨",  "1 damage +3 vs undamaged", 0, [](Unit*, Unit* other) {
+    static const Item hammer { "Hammer",  "🔨",  "1 damage +3 vs undamaged +2 vs frozen", 0, [](Unit*, Unit* other) {
         if(!other) return; 
         uint8_t damage = other->health == other->max_health?4:1;
+        if(other->frozen) damage += 2;
+        other->frozen = 0;
         if(other->health>=damage) other->health -= damage; else other->health = 0;}
     };
     static const Item claw   { "Claw  ",   "🩸",  "1 damage", 0, [](Unit*, Unit* other) {
@@ -183,14 +221,21 @@ namespace item {
         if(owner->health>=1) owner->health -= 1; else owner->health = 0;
         owner->effect = "⚡";
     }};
-    static const Item charm { "Charm ",   "💖",  "reduce hostility and 1 damage to you", 0, [](Unit* owner, Unit* other) {
+    static const Item charm { "Charm ",   "💖",  "reduce hostility for a bit and 1 damage to you", 0, [](Unit* owner, Unit* other) {
         if(!other || !owner) return;
         if(owner->health)
             owner->health--; 
+        // deliberately allow underflows/overflows at 128
         if(other->mood<0) 
             other->mood += 10;
         else
             other->mood = 10;
+    }};
+    static const Item freeze { "Freeze",   "❄️",  "immobilize for a bit and 1 damage to you", 0, [](Unit* owner, Unit* other) {
+        if(!other || !owner) return;
+        if(owner->health)
+            owner->health--; 
+        if(other->frozen<32) other->frozen += 10;
     }};
     static const Item shield { "Shield",   "🛡️",  "prevent damage", 0, [](Unit* owner, Unit* other) {
         owner->effect = "🛡️";
@@ -202,57 +247,55 @@ namespace item {
 namespace unit {
 
     // ── Terrain / environment
-    static const Unit GRASS    ("Grass   ", NO_SYMBOL, 0,0,0);
-    static const Unit TREE2    ("Tree    ", "🌳", 8,9,0);
-    static const Unit TREE     ("Tree    ", "🌲", 8,9,0);
-    static const Unit ROCK     ("Rock    ", "🪨", 5,5,0);
-    static const Unit WATER    ("Water   ", "💧", 10, 0,0);
-    static const Unit MOUNTAIN ("Mountain", "⛰️", 10, 0,0);
+    static const Unit GRASS    ("GRASS   ", NO_SYMBOL, 0,0,0);
+    static const Unit TREE2    ("TREE    ", "🌳", 8,9,0);
+    static const Unit TREE     ("TREE    ", "🌲", 8,9,0);
+    static const Unit ROCK     ("ROCK    ", "🪨", 5,5,0);
+    static const Unit WATER    ("WATER   ", "💧", 10, 0,0);
+    static const Unit MOUNTAIN ("MOUNTAIN", "⛰️", 10, 0,0);
 
     // ── Civilized folk
-    //static const Unit KNIGHT   ("Knight  ", "🤺", 5,9,5, item::sword);
-    static const Unit HUMAN    ("Human   ", "🙂", 5,5,5, item::sword);
-    static const Unit ELF      ("Elf     ", "🧝", 5,5,7);
-    static const Unit DWARF    ("Dwarf   ", "🧔", 3,9,3, item::hammer);
-    static const Unit HALFLING ("Spryfolk", "🧑‍🦱", 3,3,7, item::axe);
+    //static const Unit KNIGHT   ("KNIGHT  ", "🤺", 5,9,5, item::sword);
+    static const Unit HUMAN    ("HUMAN   ", "🙂", 5,5,5, item::sword);
+    static const Unit ELF      ("ELF     ", "🧝", 5,5,7);
+    static const Unit DWARF    ("DWARG   ", "🧔", 3,9,3, item::hammer);
+    static const Unit HALFLING ("SPRYFOLK", "🧑‍🦱", 3,3,7, item::axe);
 
     // ── Mounts & animals
-    static const Unit HORSE    ("Horse   ", "🐎",10,5,9);
-    static const Unit WOLF     ("Wolf    ", "🐺", 6,5,10, item::bite);
-    static const Unit BEAR     ("Bear    ", "🐻", 8,5,5, item::claw);
-    static const Unit EAGLE    ("Eagle   ", "🦅", 4,5,5);
-    static const Unit UNICORN  ("Unicorn ", "🦄",10,9,9, item::pound);
-    static const Unit LION     ("Lion    ", "🦁",10,5,5, item::bite);
-    static const Unit DOVE     ("Dove    ", "🕊️", 2,5,5);
-    static const Unit SNAKE    ("Snake   ", "🐍", 3,3,5, item::bite);
-    static const Unit RABBIT   ("Rabbit  ", "🐇", 1,3,10);
-    static const Unit MONKEY   ("Monkey  ", "🐒", 3,5,9);
-    static const Unit SLIME    ("Slime   ", "🫧", 1,9,3);
+    static const Unit HORSE    ("HORSE   ", "🐎",10,5,9);
+    static const Unit WOLF     ("WOLF    ", "🐺", 6,5,10, item::bite);
+    static const Unit BEAR     ("BEAR    ", "🐻", 8,5,5, item::claw);
+    static const Unit EAGLE    ("EAGLE   ", "🦅", 4,5,5, item::claw);
+    static const Unit UNICORN  ("UNICORN ", "🦄",10,9,9, item::pound);
+    static const Unit LION     ("LION    ", "🦁",10,5,5, item::bite);
+    static const Unit DOVE     ("DOVE    ", "🕊️", 2,5,5);
+    static const Unit SNAKE    ("SNAKE   ", "🐍", 3,3,5, item::bite);
+    static const Unit RABBIT   ("RABBIT  ", "🐇", 1,3,10);
+    static const Unit MONKEY   ("MONKEY  ", "🐒", 3,5,9, item::pound);
+    static const Unit SLIME    ("SLIME   ", "🫧", 1,9,3);
 
     // ── Monsters
-    static const Unit ORC      ("Orc     ", "👹", 6,6,6, item::sword);
-    static const Unit GOBLIN   ("Goblin  ", "👺", 2,3,5, item::sword);
-    static const Unit TROLL    ("Troll   ", "🧌", 7,5,2, item::hammer);
-    static const Unit DRAGON   ("Dragon  ", "🐲",15,25,5, item::fire); // 🐲 🐉
-    static const Unit VAMPIRE  ("Vampire ", "🧛", 5,5,5, item::bite, item::charm);
-    static const Unit KRAKEN   ("Kraken  ", "🐙",12,5,2);
-    static const Unit MINOTAUR ("Minotaur", "🐂", 7,5,5, item::pound);
-    static const Unit BANSHEE  ("Banshee ", "👻", 5,5,5, item::charm, item::fire);
+    static const Unit ORC      ("ORC     ", "👹", 6,6,6, item::sword);
+    static const Unit GOBLIN   ("GOBLIN  ", "👺", 2,3,5, item::sword);
+    static const Unit TROLL    ("TROLL   ", "🧌", 7,5,2, item::hammer);
+    static const Unit DRAGON   ("DRAGON  ", "🐲",15,25,5, item::fire); // 🐲 🐉
+    static const Unit VAMPIRE  ("VAMPIRE ", "🧛", 5,5,5, item::bite, item::charm);
+    static const Unit KRAKEN   ("KRAKEN  ", "🐙",12,5,2);
+    static const Unit MINOTAUR ("MINOTAUR", "🐂", 7,5,5, item::pound);
+    static const Unit BANSHEE  ("BANSHEE ", "👻", 5,5,5, item::charm, item::fire);
 
     // ── Magic & undead
-    static const Unit WIZARD   ("Wizard  ", "🧙", 5,5,4, item::fire);
-    static const Unit WITCH    ("Witch   ", "🧙‍♀️",5,5,5);
-    static const Unit SKELETON ("Skeleton", "💀", 5,3,5, item::sword);
-    static const Unit ZOMBIE   ("Zombie  ", "🧟", 5,5,3, item::pound);
-    static const Unit DEMON    ("Demon   ", "😈", 8,5,5, item::fire, item::charm);
-    static const Unit ARCHMAGE ("Archmage", "🔮", 5,5,5);
-    static const Unit LICH     ("Lich    ", "☠️", 5,5,5);
-    static const Unit GOLEM    ("Golem   ", "🗿",12,9,2, item::pound);
-    static const Unit SHADE    ("Shade   ", "🌑", 5,5,5);
+    static const Unit WIZARD   ("WIZARD  ", "🧙", 5,5,4, item::fire);
+    static const Unit WITCH    ("WITCH   ", "🧙‍♀️", 5,5,4, item::freeze);
+    static const Unit SKELETON ("SKELETON", "💀", 5,3,5, item::sword);
+    static const Unit ZOMBIE   ("ZOMBIE  ", "🧟", 5,5,3, item::pound);
+    static const Unit DEMON    ("DEMON   ", "😈", 8,5,5, item::fire, item::charm);
+    static const Unit ARCHMAGE ("ARCHMAGE", "🔮", 5,5,5, item::fire, item::freeze);
+    static const Unit LICH     ("LICH    ", "☠️", 5,5,5, item::fire, item::freeze);
+    static const Unit GOLEM    ("GOLEM   ", "🗿",12,9,2, item::pound);
+    static const Unit SHADE    ("SHADE   ", "🌑", 5,5,5, item::freeze);
 
     // ── Sample spell-like entities
-    static const Unit ICESPIKE      ("Ice Spike",     "❄️",1,1,5);
-    static const Unit LIGHTNINGBOLT ("Lightning Bolt","⚡",1,1,5);
     static const Unit HEALINGLIGHT  ("Healing Light", "✨",1,1,5);
     static const Unit MAGICSHIELD   ("Magic Shield",  "🛡️",1,1,5);
     static const Unit CURSE         ("Curse",         "☠️",1,1,5);

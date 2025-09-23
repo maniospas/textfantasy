@@ -30,11 +30,13 @@ const char* opt(std::mt19937& r, Args... args) {
 }
 
 inline void MOOD_VERB(const Unit& u, std::mt19937& r){
-    static const auto hostile= std::to_array<const char*>({"glares","snarls","bares its teeth","hisses","scowls","growls low","sneers","oozes malice"});
+    static const auto frozen = std::to_array<const char*>({"is encased in ice","is stopped in time","is immobile","remains unmoving","has turned into stalactite","lays behind the ice","is frozen","does not move","is berefit of will"});
+    static const auto hostile= std::to_array<const char*>({"glares","snarls","bares its teeth","hisses","scowls","growls low","sneers","oozes malice","is ready to engage"});
     static const auto wary   = std::to_array<const char*>({"eyes you warily","watches closely","circles with caution","keeps a distance","studies you","glances nervously","tenses","hesitates"});
     static const auto calm   = std::to_array<const char*>({"beholds you","measures you","watches quietly","stands at ease","observes unconcerned","remains still","looks on","remains calm"});
     static const auto friendl= std::to_array<const char*>({"admires you","greets you","approaches friendily","radiates goodwill","is cheerfull","glances wormly","is cheerful"});
-    if(u.mood<=-5) std::cout<<" "<<pick(hostile,r);
+    if(u.frozen) std::cout<<" "<<pick(frozen,r);
+    else if(u.mood<=-5) std::cout<<" "<<pick(hostile,r);
     else if(u.mood<0) std::cout<<" "<<pick(wary,r);
     else if(u.mood<5) std::cout<<" "<<pick(calm,r);
     else std::cout<<" "<<pick(friendl,r);
@@ -42,7 +44,7 @@ inline void MOOD_VERB(const Unit& u, std::mt19937& r){
 
 inline void HEALTH_NOTE(const Unit& u, std::mt19937& r){
     static const auto critical= std::to_array<const char*>({", bleeding and weak",", barely standing",", gravely wounded",", battered and fatigued",", panting",", ready to collapse",", covered in wounds",", grievously hurt"});
-    static const auto hurt    = std::to_array<const char*>({", worn but steady",", scratched and bruised",", marked by damage",", marked by battle",", lightly wounded",", body torn",", limping",", scarred"});
+    static const auto hurt    = std::to_array<const char*>({", worn but steady",", scratched and bruised",", marked by combat",", signs of battle",", lightly wounded",", body torn",", limping",", scarred"});
     if(u.health<u.max_health/3) std::cout<<pick(critical,r);
     else if(u.health<u.max_health) std::cout<<pick(hurt,r);
 }
@@ -56,6 +58,7 @@ inline void ITEM_NOTE(const Unit& u, std::mt19937& r){
     static const auto pound_phr   = std::to_array<const char*>({"Limbs coil with force","Arms carry silent might","Blows land with sure weight","Strength gathers calmly"});
     static const auto fire_hint   = std::to_array<const char*>({"Whispers of a sun not yet born","Sings a hymn to fire","Emits a red hush","Wreathed in curling smoke","The air tastes like ash"});
     static const auto charm_hint  = std::to_array<const char*>({"Sways your heart","Reveals a welcoming smile","Its words drip like honey","Waits in comforting quietness"});
+    static const auto freez_hint  = std::to_array<const char*>({"A chill spreads","A palce visage","The air turns cold","Is clad in cold", "Whispers of winters past", "Becones the deep chill"});
     static const auto zap_hint    = std::to_array<const char*>({"Glances at the sky","All hair are standing on edge","Like a hush before the storm","A sizzling sound screeps"});
 
     std::cout<<". ";
@@ -71,6 +74,7 @@ inline void ITEM_NOTE(const Unit& u, std::mt19937& r){
     else if (nm==item::pound.name)  std::cout<<pick(pound_phr,r);
     else if (nm==item::fire.name)   std::cout<<pick(fire_hint,r);
     else if (nm==item::charm.name)  std::cout<<pick(charm_hint,r);
+    else if (nm==item::freeze.name) std::cout<<pick(freez_hint,r);
     else if (nm==item::zap.name)    std::cout<<pick(zap_hint,r);
     else                            std::cout<<pick(weapon_phr,r)<<(weapon_nm?weapon_nm:nm);
 }
@@ -126,9 +130,11 @@ inline const char* health_adj(const Unit& u, std::mt19937& r) {
 }
 
 inline const char* mood_adj(const Unit& u, std::mt19937& r) {
+    static const auto frozen = std::to_array<const char*>({"frozen","immobile","ice-encased","petrified","timestopped"});
     static const auto hostile = std::to_array<const char*>({"hostile","snarling","menacing","malicious","feral","spiteful"});
     static const auto wary   = std::to_array<const char*>({"wary","uneasy","cautious","guarded","nervous","hesitant"});
     static const auto friendl= std::to_array<const char*>({"friendly","cheerful","warm","amiable","kindly","genial"});
+    if(u.frozen) return pick(frozen,r);
     if(u.mood<=-5) return pick(hostile,r);
     else if(u.mood<0) return pick(wary,r);
     //else if(u.mood<5) return "";//pick(calm,r);
@@ -149,6 +155,7 @@ inline const char* item_adj(const Unit& u, std::mt19937& r) {
     static const auto pound   = std::to_array<const char*>({"powerful-limbed","mighty-armed","heavy-striking","forceful","strong-limbed","impactful"});
     static const auto fire    = std::to_array<const char*>({"fiery","embered","smouldering","flame-touched","ash-kissed","charred"});
     static const auto charm   = std::to_array<const char*>({"charming","bewitching","honey-tongued","glamoured","entrancing","spellbound"});
+    static const auto freeze  = std::to_array<const char*>({"cold","chilly","winter-touched","pale","snow-clad"});
     static const auto zap     = std::to_array<const char*>({"charged","crackling","sparking","stormy","electrified","static"});
 
     // choose adjective family based on the item
@@ -158,6 +165,7 @@ inline const char* item_adj(const Unit& u, std::mt19937& r) {
     else if (nm==item::pound.name)  return pick(pound, r);
     else if (nm==item::fire.name)   return pick(fire, r);
     else if (nm==item::charm.name)  return pick(charm, r);
+    else if (nm==item::freeze.name) return pick(freeze, r);
     else if (nm==item::zap.name)    return pick(zap, r);
 
     // default: treat unknown as a generic weapon

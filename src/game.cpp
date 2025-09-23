@@ -54,15 +54,18 @@ void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
     std::cout << "\033[1;32m";   // bright red for enemy
     std::cout << "  ┌─PLAYER───────────────────────────────────────────────────────\n";
     std::cout << "  │ \033[0m  ";
-    player.info();               
+    player.info();     
+    std::cout << "  │ \033[0m  ";          
+    player.info_secondary();
     std::cout << "\033[1;32m  ├─INVENTORY────────────────────────────────────────────────────";
     std::cout << "\033[0m\n";
 
     long pos = 1;
-    if(player.mood>0) {
+    if(player.mood>0) 
         std::cout << "  \033[1;32m│ \033[0m 💖  charmed \033[1;32m│\033[0m Cannot act for a bit\n";
-    }
-    else
+    if(player.frozen) 
+        std::cout << "  \033[1;32m│ \033[0m ⏳  immobile \033[1;32m│\033[0m Cannot act or move for a bit\n";
+    if(player.mood<=0 && !player.frozen)
         for (auto& item : player.items) {
             if (pos >= 10) break;
             std::cout << "  \033[1;32m│ \033[0m" << pos << " "

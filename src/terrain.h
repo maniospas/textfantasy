@@ -35,10 +35,10 @@ private:
 
 class Terrain {
 public:
-    static constexpr long WIDTH  = 256;
-    static constexpr long HEIGHT = 256;
+    static constexpr long WIDTH  = 128;
+    static constexpr long HEIGHT = 128;
 
-    Terrain() : player_x(128), player_y(128), cells(WIDTH * HEIGHT) { randomize(); }
+    Terrain() : player_x(64), player_y(64), cells(WIDTH * HEIGHT) { randomize(); }
 
     void randomize() {
         tiles.clear();
@@ -65,6 +65,7 @@ public:
                     u->items.emplace_back(item::pound);
                     u->items.emplace_back(item::bite);
                     u->items.emplace_back(item::charm);
+                    u->items.emplace_back(item::freeze);
                 }
                 else if (r < 0.001) { units.emplace_back(unit::HUMAN); u = &units.back(); }
                 else if (r < 0.002) { units.emplace_back(unit::HORSE); u = &units.back(); }
@@ -145,86 +146,73 @@ public:
     inline Cell& cell(long x, long y) { return cells[y * WIDTH + x]; }
     inline const Cell& cell(long x, long y) const { return cells[y * WIDTH + x]; }
     inline const bool in_bounds(long x, long y) {
-        if(x>=WIDTH || y>=HEIGHT)
-            return false;
+        if(x>=WIDTH || y>=HEIGHT) return false;
+        if(x<0 || y<0) return false;
         return true;
     }
 
     void step(long interpolation_step) {
         static const int dx[4] = { 0, 0, -1, 1 };
         static const int dy[4] = { -1, 1, 0, 0 };
-        for (long y = 0; y < HEIGHT; ++y) {
-            for (long x = 0; x < WIDTH; ++x) {
-                Unit &u = cell(x, y).unit();
-                if(u.symbol==NO_SYMBOL || !u.speed) 
-                    continue;
-                if(player_x == x && player_y == y) 
-                    continue;
-                u.ai_step(*this, x, y, interpolation_step);
-            }
+        // process AI
+        for (long y = 0; y < HEIGHT; ++y) for (long x = 0; x < WIDTH; ++x) {
+            Unit &u = cell(x, y).unit();
+            if(u.symbol==NO_SYMBOL || !u.speed) continue;
+            if(player_x == x && player_y == y) continue;
+            u.ai_step(*this, x, y, interpolation_step);
         }
+        // standard mechanics here
         if(interpolation_step==0) {
-            for(auto& u : units) 
-                if(u.spreads) 
-                    u.to_spread = 1;
-
-            for (long y = 1; y < HEIGHT-1; ++y) 
-                for (long x = 1; x < WIDTH-1; ++x) {
-                    Unit &u = cell(x, y).unit();
-                    if (u.spreads && u.to_spread) 
-                        for (int i=0;i<4;++i) {
-                            auto& spread_to = cell(x+dx[i], y+dy[i]).unit();
-                            if(spread_to.symbol==NO_SYMBOL)
-                                continue;
-                            u.spreads(nullptr, &spread_to);
-                        }
+            // mark who spreads contagious stuff/fire
+            for(auto& u : units) if(u.spreads && !u.frozen) u.to_spread = 1;
+            // actually spread stuff
+            for (long y = 1; y < HEIGHT-1; ++y) for (long x = 1; x < WIDTH-1; ++x) {
+                Unit &u = cell(x, y).unit();
+                if (u.spreads && u.to_spread) for (int i=0;i<4;++i) {
+                    auto& spread_to = cell(x+dx[i], y+dy[i]).unit();
+                    if(spread_to.symbol==NO_SYMBOL)  continue;
+                    u.spreads(nullptr, &spread_to);
                 }
+            }
+            // process mood (randomly, not in cycles), symbols, and cycles/food 
             for(auto& u : units) {
+                if(u.frozen) --u.frozen;
+                if(!u.frozen && (++u.cycle)>=16) u.cycle = 0;
+                if(!u.cycle && u.health && u.health<u.max_health && u.provisions) {
+                    // the fact that we may waste provisions if only one health is lost is deliberate
+                    --u.provisions;
+                    u.health++;
+                    if(u.health<u.max_health) u.health++;
+                }
                 if(u.symbol!=NO_SYMBOL && u.items.size()) {
-                    if(u.mood==0 && dist(rng)<0.02)
-                        u.mood--;
-                    if(u.mood==-1 && dist(rng)<0.02)
-                        u.mood++;
-                    if(u.mood<-1)
-                        u.mood++;
-                    else if(u.mood>0)
-                        u.mood--;
+                    if(u.mood==0 && dist(rng)<0.02) u.mood--;
+                    if(u.mood==-1 && dist(rng)<0.02) u.mood++;
+                    if(u.mood<-1) u.mood++;
+                    else if(u.mood>0) u.mood--;
                 }
-                else
-                    u.mood = 0;
-                if(u.to_spread) {
-                    u.to_spread = 0;
-                    u.spreads = nullptr;
-                }
-                if(u.health==0 && u.max_health)
-                    u.symbol = NO_SYMBOL;
+                else u.mood = 0;
+                if(u.to_spread) u.spreads = nullptr;
+                u.to_spread = 0;
+                if(u.health==0 && u.max_health) u.symbol = NO_SYMBOL;
             }
         }
-        else {
-            for(auto& u : units) {
-                if(u.symbol==NO_SYMBOL)
-                    u.effect = nullptr;
-                if(u.effect && !u.spreads)
-                    u.effect = nullptr;
-            }
-        }
+        else for(auto& u : units) if((u.symbol==NO_SYMBOL || !u.spreads)) u.effect = u.frozen&&u.health?"❄️":nullptr;
     }
 
-
     bool move(long fromX, long fromY, long toX, long toY) {
-        if (fromX < 0 || fromX >= WIDTH || fromY < 0 || fromY >= HEIGHT ||
-            toX   < 0 || toX   >= WIDTH || toY   < 0 || toY   >= HEIGHT) {
-            return false;
-        }
+        // bound checks
+        if(!in_bounds(fromX, fromY) || !in_bounds(toX, toY)) return false;
         auto& src = cell(fromX, fromY);
         auto& dst = cell(toX, toY);
-        if (&dst.unit() != defaultUnit && dst.unit().symbol!=NO_SYMBOL) 
-            return false;
+        // only overwrite grass or dead units
+        if (&dst.unit() != defaultUnit && dst.unit().symbol!=NO_SYMBOL) return false;
         auto u = &src.unit();
-        if(u == defaultUnit) 
+        if(u == defaultUnit) return false;
+        if(u->frozen) {
+            u->effect = "❄️";
             return false;
-        if(u->effect)
-            return false; // do not move while there is an effect on operation 
+        }
+        if(u->effect || u->frozen) return false; // do not move while there is an effect on operation or simply frozen
         dst.set(dst.tile_ ? &dst.tile() : defaultTile, u);
         src.set(src.tile_ ? &src.tile() : defaultTile, defaultUnit);
         return true;
