@@ -1,13 +1,14 @@
 #include "utils.h"
 #include "terrain.h"
 #include "agent.h"
+#include "dsl.h"
 #include <thread>
 #include <chrono>
+#include <iostream>
 
 #if defined(_WIN32)
     #include <windows.h>
 #endif
-#include <iostream>
 
 
 void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
@@ -29,8 +30,9 @@ void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
             //     std::cout << item.symbol << " " << item.name << " ";
             // }  
             std::cout << "  \033[1;34m│ \033[0m  \n";
-            std::cout << "  \033[1;34m│ \033[0m  ";
-            std::cout << request_engine(*touch);
+            std::cout << "  \033[1;34m│ \033[0m ";
+            //std::cout << request_engine(*touch);
+            print_status(*touch);
             std::cout << "\n\033[1;34m  └──────────────────────────────────────────────────────";
             std::cout << "\033[0m\n";
         }
@@ -40,8 +42,9 @@ void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
             std::cout << "  │ \033[0m  ";
             touch->base_info();      
             std::cout << "  \033[1;31m│ \033[0m  \n";
-            std::cout << "  \033[1;31m│ \033[0m  "; 
-            std::cout << request_engine(*touch);      
+            std::cout << "  \033[1;31m│ \033[0m "; 
+            //std::cout << request_engine(*touch);    
+            print_status(*touch);  
             std::cout << "\n\033[1;31m  └──────────────────────────────────────────────────────";
             std::cout << "\033[0m\n";
         }
