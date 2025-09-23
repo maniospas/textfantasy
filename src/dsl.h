@@ -42,7 +42,7 @@ inline void MOOD_VERB(const Unit& u, std::mt19937& r){
 
 inline void HEALTH_NOTE(const Unit& u, std::mt19937& r){
     static const auto critical= std::to_array<const char*>({", bleeding and weak",", barely standing",", gravely wounded",", battered and fatigued",", panting",", ready to collapse",", covered in wounds",", grievously hurt"});
-    static const auto hurt    = std::to_array<const char*>({", worn but steady",", scratched and bruised",", marked by damage",", marked by battle",", lightly wounded",", body torn",", moving crookedly",", scarred"});
+    static const auto hurt    = std::to_array<const char*>({", worn but steady",", scratched and bruised",", marked by damage",", marked by battle",", lightly wounded",", body torn",", limping",", scarred"});
     if(u.health<u.max_health/3) std::cout<<pick(critical,r);
     else if(u.health<u.max_health) std::cout<<pick(hurt,r);
 }
@@ -128,7 +128,6 @@ inline const char* health_adj(const Unit& u, std::mt19937& r) {
 inline const char* mood_adj(const Unit& u, std::mt19937& r) {
     static const auto hostile = std::to_array<const char*>({"hostile","snarling","menacing","malicious","feral","spiteful"});
     static const auto wary   = std::to_array<const char*>({"wary","uneasy","cautious","guarded","nervous","hesitant"});
-    static const auto calm   = std::to_array<const char*>({"calm","serene","placid","composed","steady","cool"});
     static const auto friendl= std::to_array<const char*>({"friendly","cheerful","warm","amiable","kindly","genial"});
     if(u.mood<=-5) return pick(hostile,r);
     else if(u.mood<0) return pick(wary,r);

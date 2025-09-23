@@ -19,10 +19,10 @@ void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
     if (touch && touch->symbol != unit::GRASS.symbol) {
         if(touch->ai_target!=&player) {
             std::cout << "\033[1;34m";   // bright red for enemy
-            std::cout << "  ┌─TARGET───────────────────────────────────────────────\n";
+            std::cout << "  ┌─TARGET───────────────────────────────────────────────────────\n";
             std::cout << "  │ \033[0m  ";
             touch->base_info();
-            //std::cout << "\033[1;34m  ├─INFO─────────────────────────────────────────────────\n";
+            //std::cout << "\033[1;34m  ├─INFO─────────────────────────────────────────────────────────\n";
             //std::cout << "  \033[1;34m│ \033[0mQ question \033[1;34m│ \033[0m\n";
             //std::cout << "  \033[1;34m│ \033[0mI info     \033[1;34m│ \033[0m\n";  
             //std::cout << "  \033[1;34m│ \033[0m  ";
@@ -33,29 +33,29 @@ void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
             std::cout << "  \033[1;34m│ \033[0m ";
             //std::cout << request_engine(*touch);
             print_status(*touch);
-            std::cout << "\n\033[1;34m  └──────────────────────────────────────────────────────";
+            std::cout << "\n\033[1;34m  └──────────────────────────────────────────────────────────────";
             std::cout << "\033[0m\n";
         }
         else {
             std::cout << "\033[1;31m";   // bright red for enemy
-            std::cout << "  ┌─FIGHTING─────────────────────────────────────────────\n";
+            std::cout << "  ┌─FIGHTING─────────────────────────────────────────────────────\n";
             std::cout << "  │ \033[0m  ";
             touch->base_info();      
             std::cout << "  \033[1;31m│ \033[0m  \n";
             std::cout << "  \033[1;31m│ \033[0m "; 
             //std::cout << request_engine(*touch);    
             print_status(*touch);  
-            std::cout << "\n\033[1;31m  └──────────────────────────────────────────────────────";
+            std::cout << "\n\033[1;31m  └──────────────────────────────────────────────────────────────";
             std::cout << "\033[0m\n";
         }
     } else std::cout << "\n\n\n\n\n";
     std::cout << "\n";
     
     std::cout << "\033[1;32m";   // bright red for enemy
-    std::cout << "  ┌─PLAYER───────────────────────────────────────────────\n";
+    std::cout << "  ┌─PLAYER───────────────────────────────────────────────────────\n";
     std::cout << "  │ \033[0m  ";
     player.info();               
-    std::cout << "\033[1;32m  ├─INVENTORY────────────────────────────────────────────";
+    std::cout << "\033[1;32m  ├─INVENTORY────────────────────────────────────────────────────";
     std::cout << "\033[0m\n";
 
     long pos = 1;
@@ -70,7 +70,7 @@ void redraw(const Terrain& terrain, Unit* touch, const Unit& player) {
                     << " \033[1;32m│\033[0m " << item.description << "\n";
             pos++;
         }
-    std::cout << "\033[1;32m  └──────────────────────────────────────────────────────";
+    std::cout << "\033[1;32m  └──────────────────────────────────────────────────────────────";
 
     std::cout << "\033[0m\n    WASD: move   Number: use item   Ctrl+C: quit\n";
 }
